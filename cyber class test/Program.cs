@@ -23,7 +23,7 @@ public class Program
         var rsa = RSA.Create(2048);
         var expiredKey = new RsaSecurityKey(rsa);
         var expiredKid = Guid.NewGuid().ToString();
-        expiredKey.KeyId = expiredKid;  // Set KeyId on the key itself
+        expiredKey.KeyId = expiredKid; 
         var expiredDate = DateTime.UtcNow.AddMinutes(-10);
         KeyManager.keys[expiredKid] = (expiredKey, expiredDate);
 
@@ -71,7 +71,7 @@ public class KeyManager
         var rsa = RSA.Create(2048);  // Create a new RSA key with 2048 bits
         var key = new RsaSecurityKey(rsa);
         var kid = Guid.NewGuid().ToString();  // Generate a unique kid (key ID)
-        key.KeyId = kid;  // Set KeyId on the key itself
+        key.KeyId = kid; 
         var expiry = DateTime.UtcNow.Add(expiryPeriod);
 
         keys[kid] = (key, expiry);
@@ -145,7 +145,10 @@ public class AuthController : ControllerBase
 
         var (key, kid) = keyData.Value;
         var now = DateTime.UtcNow;
-        var expiry = now.AddMinutes(30);
+
+       
+        var expiry = expired ? now.AddMinutes(-30) : now.AddMinutes(30);
+        var notBefore = expired ? now.AddMinutes(-60) : now;
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
@@ -155,6 +158,7 @@ public class AuthController : ControllerBase
                 new Claim(JwtRegisteredClaimNames.Iat, ((DateTimeOffset)now).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
             }),
             Expires = expiry,
+            NotBefore = notBefore,
             SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.RsaSha256),
             Issuer = "selftest",
             Audience = "JustTest"
